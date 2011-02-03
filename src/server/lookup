@@ -1,0 +1,55 @@
+#!/bin/bash
+
+STAT_FORMAT_STR=":ino=%i\n:dev=%d\n:type=%F\n:nlink=%h\n:uid=%u\n:gid=%g\n:size=%s\n:blksize=%o\n:blocks=%b\n:atime=%X\n:mtime=%Y\n:ctime=%Z\n"
+
+function lookup_root()
+{
+    root_ino=$(stat --printf="%i\n" $NIMBUS_EXPORT)
+
+    # Over-write if this already exists in the namespace
+    ln -sf $NIMBUS_EXPORT $NIMBUS_NAMESPACE/$root_ino
+
+    stat --printf=$STAT_FORMAT_STR $NIMBUS_EXPORT
+}
+
+
+function do_lookup()
+{
+    directory_ino=$1
+    basename=$2
+
+    if [ -d $NIMBUS_NAMESPACE/$directory_ino ]; then
+	ino=$(stat --printf="%i\n" $NIMBUS_NAMESPACE/$directory_ino/$basename)
+	ln -sf $NIMBUS_NAMESPACE/$directory_ino/$basename $NIMBUS_NAMESPACE/$ino
+
+	stat --printf=$STAT_FORMAT_STR $NIMBUS_NAMESPACE/$directory_ino/$basename
+    else
+	printf "symlink for inode %d does not exist!\n" $directory_ino
+	exit 1
+    fi
+}
+
+
+function usage()
+{
+    echo "usage: $0 directory_ino basename"
+}
+
+
+function main()
+{
+    if [ $# -lt 2 ]; then
+	usage
+	exit 1
+    fi
+
+    if [ $1 -eq 0 -a "x$2" == "x/" ]; then
+	# lookup is for root
+	lookup_root
+    else
+	do_lookup $*
+    fi
+}
+
+
+main $*;
