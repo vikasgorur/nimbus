@@ -1,0 +1,49 @@
+#!/bin/bash
+
+
+function do_read()
+{
+    ino=$1
+    offset=$2
+    size=$3
+
+    if [ ! -f $NIMBUS_NAMESPACE/$ino ]; then
+	echo ":op-ret=-1"
+	echo ":op-errno=2" # enoent
+	exit 0
+    fi
+
+    DDSTDOUT=251
+    DDSTDERR=252
+
+    eval "exec $DDSTDOUT>&1"
+    eval "exec $DDSTDERR>&2"
+
+    dd if=$NIMBUS_NAMESPACE/$ino bs=1 skip=$offset count=$size 2>&$DDSTDERR &
+
+    buf=$(cat <& $DDSTDOUT)
+    echo ":op-ret=$size" # TODO: get this from dd's stderr
+    echo ":op-errno=0"   # liar, liar
+    echo ":data-size=$size" # pants on fire
+    echo -n "$buf"     # TODO: this eats up newlines
+}
+
+
+function usage()
+{
+    echo "$0 ino offset size"
+}
+
+
+function main()
+{
+    if [ $# -lt 3 ]; then
+	usage;
+	exit 1
+    fi
+
+    do_read $*
+}
+
+
+main $*;
