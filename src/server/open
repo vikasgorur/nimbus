@@ -1,0 +1,18 @@
+#!/bin/bash
+
+
+function do_open()
+{
+    echo ":op-ret=142011"
+    echo ":op-errno=0"
+}
+
+
+function main()
+{
+    do_open $*
+    exit 0
+}
+
+
+main $*
